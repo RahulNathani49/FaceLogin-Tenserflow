@@ -14,6 +14,11 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/face-landmarks-detection"></script>
 
+<!-- Load TensorFlow.js and the Face-API.js library -->
+
+<!-- <script src="./js/face-api.js"></script> -->
+
+
 
 </head>
 <body>
@@ -22,17 +27,21 @@
   <input type="file" id="inputImage2" accept="image/*">
 
   <button onclick="detectLandmarks()">Detect Landmarks</button>
-  <button onclick="compareFaces()">Compare Faces</button>
+  <button onclick="detectLandmarks2()">Detect Landmarks 2</button>
+  <button onclick="loadFaceApi()">Compare Faces</button>
 
-  <div id="output" style="color:green;"></div>
-  <div id="output2" style="color:red"></div>
+  <div id="output" style="color:green;float: left;" ></div>
+  <div id="output2" style="color:red;float: left;"></div>
 
   <script>
+    const MODEL_URL = 'http://10.0.0.183:8080/'
+
+    var face1;
+    var face2;
+
     async function detectLandmarks() {
       // Get the input image element
       const inputImage = document.getElementById('inputImage');
-      const inputImage2 = document.getElementById('inputImage2');
-      
 
       // Load the face landmarks detection model
       const model = faceLandmarksDetection.SupportedModels.MediaPipeFaceMesh;
@@ -42,7 +51,6 @@
       const detector = await faceLandmarksDetection.createDetector(model, detectorConfig);
       // Read the uploaded image file and convert to a tensor
       const file = inputImage.files[0];
-      const file2 = inputImage2.files[0];
 
     //   IMAGE 1
       const reader = new FileReader();
@@ -53,7 +61,8 @@
           // Detect landmarks on the input image
           const estimationConfig = {flipHorizontal: false};
           const faces = await detector.estimateFaces(tensor, estimationConfig);
-          
+          face1 = faces;
+          console.log("face1 = ",face1[0].keypoints);
           // Display the detected landmarks in the output div
           const outputDiv = document.getElementById('output');
           outputDiv.innerText = JSON.stringify(faces, null, 2);
@@ -64,54 +73,70 @@
 
     //   IMAGE 2 
     
+      
+      
+    }
+
+    async function detectLandmarks2(){
+        const inputImage2 = document.getElementById('inputImage2');
+        const model = faceLandmarksDetection.SupportedModels.MediaPipeFaceMesh;
+      const detectorConfig = {
+        runtime: 'tfjs',
+      };
+      const detector = await faceLandmarksDetection.createDetector(model, detectorConfig);
+      const file2 = inputImage2.files[0];
       const reader2 = new FileReader();
       reader2.onload = async () => {
-        const image = new Image();
-        image.onload = async () => {
-          const tensor = tf.browser.fromPixels(image);
+        const image2 = new Image();
+        image2.onload = async () => {
+          const tensor2 = tf.browser.fromPixels(image2);
           // Detect landmarks on the input image
           const estimationConfig = {flipHorizontal: false};
-          const faces = await detector.estimateFaces(tensor, estimationConfig);
+          const faces = await detector.estimateFaces(tensor2, estimationConfig);
+          face2 = faces;
+          console.log("face2 = ",face2[0].keypoints);
           // Display the detected landmarks in the output div
           const outputDiv2 = document.getElementById('output2');
           outputDiv2.innerText = JSON.stringify(faces, null, 2);
           
         };
-        image.src = reader.result;
+        image2.src = reader2.result;
       };
       reader2.readAsDataURL(file2);
-
-
-
-      const outputDiv1 = document.getElementById('output');
-const facesJson1 = outputDiv1.innerText;
-const faces1 = JSON.parse(facesJson1);
-
-const outputDiv2 = document.getElementById('output2');
-const facesJson2 = outputDiv2.innerText;
-const faces2 = JSON.parse(facesJson2);
-
-      const similarity = compareLandmarks(faces1[0].scaledMesh, faces2[0].scaledMesh);
-        console.log(`Similarity: ${similarity}%`);
     }
 
-    function compareLandmarks(landmarks1, landmarks2) {
-  // Calculate the Euclidean distance between each corresponding point
-  let distance = 0;
-  for (let i = 0; i < landmarks1.length; i++) {
-    const point1 = landmarks1[i];
-    const point2 = landmarks2[i];
-    const dx = point1.x - point2.x;
-    const dy = point1.y - point2.y;
-    distance += Math.sqrt(dx*dx + dy*dy);
-  }
 
-  // Normalize the distance to a percentage value (0-100)
-  const maxDistance = landmarks1.length * Math.sqrt(2); // Maximum possible distance between two points
-  const similarity = Math.max(0, (maxDistance - distance) / maxDistance) * 100;
 
-  return similarity.toFixed(2);
+    async function loadFaceApi() {
+  const script = document.createElement('script');
+  script.src = './js/face-api.js';
+  script.onload = () => {
+console.log('Face API loaded');
+compareimages();
+};
+  document.head.appendChild(script);
 }
+ 
+    async function compareimages() {
+        const faceapi = window.faceapi;
+
+  await faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL);
+  await faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL);
+
+  // Create descriptors for each face
+  const face1Descriptor = await faceapi.computeFaceDescriptor(face1[0].keypoints);
+  const face2Descriptor = await faceapi.computeFaceDescriptor(face2[0].keypoints);
+
+  // Compute the euclidean distance between the two descriptors
+  const distance = faceapi.euclideanDistance(face1Descriptor, face2Descriptor);
+  console.log('Distance: ', distance);
+
+  // Display the result in the output div
+  const outputDiv = document.getElementById('output');
+  outputDiv.innerText = 'Distance: ' + distance;
+
+    }
+
 
 </script>
 </body>

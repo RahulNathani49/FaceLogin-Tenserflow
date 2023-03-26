@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Face Verification</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@3.9.0/dist/tf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/face-landmarks-detection"></script>
+</head>
+<body>
+    <h1>Face Verification</h1>
+    <canvas id="canvas1" width="640" height="480"></canvas>
+    <canvas id="canvas2" width="640" height="480"></canvas>
+    <br>
+    <button onclick="verify()">Verify</button>
+    <script>
+        async function verify() {
+            const model = faceLandmarksDetection.SupportedModels.MediaPipeFaceMesh;
+
+            const canvas1 = document.getElementById('canvas1');
+            const canvas2 = document.getElementById('canvas2');
+            const ctx1 = canvas1.getContext('2d');
+            const ctx2 = canvas2.getContext('2d');
+
+            // Get landmarks for first image
+            const img1 = new Image();
+            img1.onload = async function() {
+                ctx1.drawImage(img1, 0, 0);
+                const landmarks1 = await model.estimateFaces({
+                    input: img1,
+                    returnTensors: false,
+                    flipHorizontal: false
+                });
+                console.log(landmarks1);
+            }
+            img1.src = 'Rinki.jpeg';
+
+            // Get landmarks for second image
+            const img2 = new Image();
+            img2.onload = async function() {
+                ctx2.drawImage(img2, 0, 0);
+                const landmarks2 = await model.estimateFaces({
+                    input: img2,
+                    returnTensors: false,
+                    flipHorizontal: false
+                });
+                console.log(landmarks2);
+            }
+            img2.src = 'Rahul.jpg';
+
+            // Compare landmarks
+            const distanceThreshold = 0.2; // Adjust threshold as needed
+            const distance = tf.losses.meanSquaredError(landmarks1, landmarks2);
+            console.log(distance);
+            if (distance < distanceThreshold) {
+                console.log('Same person');
+            } else {
+                console.log('Different person');
+            }
+        }
+    </script>
+</body>
+</html>
