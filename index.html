@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Face Landmarks Detection Example</title>
+  <!-- Load TensorFlow.js and the face-landmarks-detection model -->
+  <!-- Require the peer dependencies of face-landmarks-detection. -->
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-core"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-converter"></script>
+
+<!-- You must explicitly require a TF.js backend if you're not using the TF.js union bundle. -->
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-backend-webgl"></script>
+
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/face-detection"></script>
+
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/face-landmarks-detection"></script>
+</head>
+<body>
+  <h1>Face Landmarks Detection Example</h1>
+  <input type="file" id="inputImage" accept="image/*">
+  <button onclick="detectLandmarks()">Detect Landmarks</button>
+  <div id="output"></div>
+  <script>
+    async function detectLandmarks() {
+      // Get the input image element
+      const inputImage = document.getElementById('inputImage');
+      // Load the face landmarks detection model
+      const model = faceLandmarksDetection.SupportedModels.MediaPipeFaceMesh;
+      const detectorConfig = {
+        runtime: 'tfjs',
+      };
+      const detector = await faceLandmarksDetection.createDetector(model, detectorConfig);
+      // Read the uploaded image file and convert to a tensor
+      const file = inputImage.files[0];
+      const reader = new FileReader();
+      reader.onload = async () => {
+        const image = new Image();
+        image.onload = async () => {
+          const tensor = tf.browser.fromPixels(image);
+          // Detect landmarks on the input image
+          const estimationConfig = {flipHorizontal: false};
+          const faces = await detector.estimateFaces(tensor, estimationConfig);
+          // Display the detected landmarks in the output div
+          const outputDiv = document.getElementById('output');
+          outputDiv.innerText = JSON.stringify(faces, null, 2);
+        };
+        image.src = reader.result;
+      };
+      reader.readAsDataURL(file);
+    }
+  </script>
+</body>
+</html>
